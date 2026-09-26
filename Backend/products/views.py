@@ -40,7 +40,7 @@ def _generate_description_with_ai(name: str, image_file) -> str:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name='gemini-2.5-flash')
+        model = genai.GenerativeModel(model_name=os.getenv('GEMINI_MODEL_NAME', 'gemini-3.8-flash'))
 
         prompt = (
             "Generate a concise e-commerce product description in plain text. "

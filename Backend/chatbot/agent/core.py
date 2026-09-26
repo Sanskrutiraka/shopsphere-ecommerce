@@ -12,7 +12,7 @@ def run_agent(message: str, user=None, session=None) -> str:
     builder = ToolsetBuilder(user)
     
     model = genai.GenerativeModel(
-        model_name='gemini-2.5-flash',
+        model_name=os.getenv('GEMINI_MODEL_NAME', 'gemini-3.8-flash'),
         tools=builder.build_tools(),
         system_instruction=(
             f"You are ShopSphere AI, an enterprise-grade digital concierge for an e-commerce platform. "
