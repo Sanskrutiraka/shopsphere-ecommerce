@@ -1,0 +1,140 @@
+import { Link } from 'react-router-dom';
+import { ShoppingCart, Heart, Star, Package } from 'lucide-react';
+import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
+import api from '../../lib/api';
+
+export default function ProductCard({ product }) {
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+
+  const price = product.current_price;
+  const image = product.primary_image;
+  const isOutOfStock = product.stock_qty === 0;
+  const hasDiscount = price?.discount_percentage > 0;
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    if (!user) { toast.error('Please login to add to cart'); return; }
+    if (user.role !== 'CUSTOMER') { toast.error('Admins cannot add to cart'); return; }
+    try {
+      await addToCart(product.id, 1);
+      toast.success('Added to cart!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to add to cart');
+    }
+  };
+
+  const handleWishlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { toast.error('Please login to use wishlist'); return; }
+    try {
+      const { data } = await api.post('/products/wishlist/', { product_id: product.id });
+      toast.success(data?.message || 'Added to wishlist!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update wishlist');
+    }
+  };
+
+  return (
+    <Link to={`/products/${product.slug}`} className="group block">
+      <div className="neo-card neo-hover overflow-hidden h-full flex flex-col">
+        {/* Image */}
+        <div className="relative aspect-square overflow-hidden bg-gray-100 neo-border border-l-0 border-r-0 border-t-0">
+          {image?.image_url ? (
+            <img src={image.image_url} alt={image.alt_text || product.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Package size={48} className="text-gray-300" />
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {hasDiscount && (
+              <span className="neo-badge bg-[#F97316] text-white px-2 py-0.5">
+                -{price.discount_percentage}%
+              </span>
+            )}
+            {product.is_featured && (
+              <span className="neo-badge bg-[#FBBF24] text-black px-2 py-0.5">
+                Featured
+              </span>
+            )}
+            {isOutOfStock && (
+              <span className="neo-badge bg-red-500 text-white px-2 py-0.5">
+                Out of Stock
+              </span>
+            )}
+          </div>
+
+          {/* Wishlist button */}
+          <button
+            onClick={handleWishlist}
+            type="button"
+            className="absolute top-2 right-2 w-8 h-8 bg-white neo-border neo-shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+          >
+            <Heart size={14} strokeWidth={2.5} className="text-red-500" />
+          </button>
+        </div>
+
+        {/* Info */}
+        <div className="p-3 flex flex-col flex-1">
+          {product.category_name && (
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+              {product.category_name}
+            </span>
+          )}
+          <h3 className="font-black text-sm leading-tight mb-1 line-clamp-2 flex-1">
+            {product.name}
+          </h3>
+
+          {/* Rating */}
+          {product.avg_rating && (
+            <div className="flex items-center gap-1 mb-2">
+              <Star size={12} fill="#F97316" className="text-[#F97316]" />
+              <span className="text-xs font-bold">{product.avg_rating}</span>
+              <span className="text-[10px] text-gray-400">({product.review_count})</span>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mb-3">
+            {price ? (
+              <>
+                <span className="text-lg font-black text-[#0A0A0A]">
+                  ₹{parseFloat(price.selling_price).toLocaleString('en-IN')}
+                </span>
+                {hasDiscount && (
+                  <span className="text-xs text-gray-400 line-through">
+                    ₹{parseFloat(price.base_price).toLocaleString('en-IN')}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm text-gray-400 font-bold">Price TBD</span>
+            )}
+          </div>
+
+          {/* Add to Cart */}
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className={`neo-btn w-full py-2 text-xs font-black flex items-center justify-center gap-1.5
+              ${isOutOfStock
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 shadow-none'
+                : 'bg-[#F97316] text-white'
+              }`}
+          >
+            <ShoppingCart size={13} strokeWidth={2.5} />
+            {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+        </div>
+      </div>
+    </Link>
+  );
+}
