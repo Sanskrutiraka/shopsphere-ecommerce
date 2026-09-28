@@ -26,7 +26,7 @@ def seed():
         }
     )
     if created:
-        admin.set_password('admin123')
+        admin.set_password('admin@123')
         admin.save()
         print("Created superadmin: admin@shopsphere.com / admin123")
     else:
@@ -44,9 +44,9 @@ def seed():
         }
     )
     if created:
-        customer.set_password('user123')
+        customer.set_password('User@123')
         customer.save()
-        print("Created customer: user@shopsphere.com / user123")
+        print("Created customer: user@shopsphere.com / User@123")
     else:
         print("Customer already exists")
 

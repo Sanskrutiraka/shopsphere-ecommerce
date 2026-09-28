@@ -191,7 +191,8 @@ run_project.bat
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Admin** | `admin@shopsphere.com` | `Admin@123` |
+| **Admin** | `admin@shopsphere.com` | `admin123` |
+| **Customer** | `user@shopsphere.com` | `User@123` |
 | **Customer** | Register a new account with email verification | Any password |
 
 ---

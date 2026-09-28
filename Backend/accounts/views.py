@@ -78,20 +78,30 @@ class VerifyOTPView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data['email']
-        otp = serializer.validated_data['otp']
+        email = serializer.validated_data['email'].strip().lower()
+        otp = serializer.validated_data['otp'].strip()
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
+            if user.is_verified:
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'message': 'Account already verified.',
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'user': UserSerializer(user).data
+                })
             token = EmailVerificationToken.objects.get(user=user)
-        except (User.DoesNotExist, EmailVerificationToken.DoesNotExist):
-            return Response({'error': 'Invalid email or OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({'error': 'No account found with this email.'}, status=status.HTTP_400_BAD_REQUEST)
+        except EmailVerificationToken.DoesNotExist:
+            return Response({'error': 'No pending OTP found. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if token.is_expired():
-            return Response({'error': 'OTP has expired. Please request a new one.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'OTP has expired. Please click Resend OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if token.otp != otp:
-            return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        if token.otp.strip() != otp:
+            return Response({'error': 'Invalid OTP. Please enter the latest OTP received.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user.is_verified = True
         user.is_approved = True
@@ -146,7 +156,7 @@ class LoginView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data['email'].strip().lower()
         password = serializer.validated_data['password']
 
         user = authenticate(request, username=email, password=password)

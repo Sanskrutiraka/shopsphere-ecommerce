@@ -172,7 +172,8 @@ export default function LoginPage() {
           <div className="mt-6 neo-border border-[#F97316] p-4 neo-shadow-orange bg-orange-50">
             <p className="text-xs font-black uppercase tracking-wide text-[#F97316] mb-2">Demo Credentials</p>
             <div className="space-y-1 text-xs font-mono">
-              <div><span className="font-bold">Admin:</span> admin@shopsphere.com / Admin@123</div>
+              <div><span className="font-bold">Customer:</span> user@shopsphere.com / User@123</div>
+              <div><span className="font-bold">Admin:</span> admin@shopsphere.com / admin123</div>
             </div>
           </div>
 
