@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 export default function WishlistPage() {
   const { wishlist, wishlistLoading, removeFromWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  const { addToCart, getItemQuantity, updateProductQuantity } = useCart();
 
   const handleRemove = async (productId) => {
     try {
@@ -64,6 +64,7 @@ export default function WishlistPage() {
           if (!product) return null;
           const price = product.current_price;
           const isOutOfStock = product.stock_qty === 0;
+          const cartQty = getItemQuantity(product.id);
 
           return (
             <div key={item.id} className="neo-card flex flex-col group relative">
@@ -95,14 +96,46 @@ export default function WishlistPage() {
                 <div className="font-black text-lg mb-3">
                   {price ? `₹${parseFloat(price.selling_price).toLocaleString('en-IN')}` : 'Price TBD'}
                 </div>
-                <button
-                  onClick={(e) => handleAddToCart(product.id, e)}
-                  disabled={isOutOfStock}
-                  className={`neo-btn w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer
-                    ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#0A0A0A] text-white'}`}
-                >
-                  <ShoppingCart size={14} /> {isOutOfStock ? 'Unavailable' : 'Add to Cart'}
-                </button>
+                {isOutOfStock ? (
+                  <button
+                    disabled
+                    className="neo-btn w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 shadow-none"
+                  >
+                    <ShoppingCart size={14} /> Out of Stock
+                  </button>
+                ) : cartQty > 0 ? (
+                  <div 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="w-full h-[34px] bg-white neo-border neo-shadow-sm flex items-center justify-between overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => updateProductQuantity(product.id, cartQty - 1)}
+                      className="w-10 h-full flex items-center justify-center font-black text-base hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-r-2 border-[#0A0A0A]"
+                      title="Decrease quantity"
+                    >
+                      −
+                    </button>
+                    <span className="flex-1 text-center font-black text-sm text-[#0A0A0A] select-none">
+                      {cartQty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateProductQuantity(product.id, cartQty + 1)}
+                      className="w-10 h-full flex items-center justify-center font-black text-base hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-l-2 border-[#0A0A0A]"
+                      title="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={(e) => handleAddToCart(product.id, e)}
+                    className="neo-btn w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 bg-[#0A0A0A] text-white hover:bg-[#F97316] cursor-pointer"
+                  >
+                    <ShoppingCart size={14} /> Add to Cart
+                  </button>
+                )}
               </div>
             </div>
           );

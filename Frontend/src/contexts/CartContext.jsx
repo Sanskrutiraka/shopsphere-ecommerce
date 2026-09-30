@@ -38,12 +38,47 @@ export function CartProvider({ children }) {
   };
 
   const clearCart = async () => {
-    await api.delete('/orders/cart/', { data: { clear_all: true } });
-    setCart({ items: [], total: 0, item_count: 0 });
+    const { data } = await api.delete('/orders/cart/', { data: { clear_all: true } });
+    setCart(data);
+  };
+
+  const getItemQuantity = (productId) => {
+    const item = cart.items?.find(i => (i.product?.id === productId || i.product_id === productId || i.product === productId));
+    return item ? item.quantity : 0;
+  };
+
+  const getCartItem = (productId) => {
+    return cart.items?.find(i => (i.product?.id === productId || i.product_id === productId || i.product === productId)) || null;
+  };
+
+  const updateProductQuantity = async (productId, newQuantity) => {
+    const item = getCartItem(productId);
+    if (newQuantity <= 0) {
+      if (item) {
+        return await removeItem(item.id);
+      }
+      return;
+    }
+    if (item) {
+      return await updateItem(item.id, newQuantity);
+    } else {
+      return await addToCart(productId, newQuantity);
+    }
   };
 
   return (
-    <CartContext.Provider value={{ cart, cartLoading, fetchCart, addToCart, updateItem, removeItem, clearCart }}>
+    <CartContext.Provider value={{
+      cart,
+      cartLoading,
+      fetchCart,
+      addToCart,
+      updateItem,
+      removeItem,
+      clearCart,
+      getItemQuantity,
+      getCartItem,
+      updateProductQuantity
+    }}>
       {children}
     </CartContext.Provider>
   );

@@ -7,7 +7,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import toast from 'react-hot-toast';
 
 export default function ProductCard({ product }) {
-  const { addToCart } = useCart();
+  const { addToCart, getItemQuantity, updateProductQuantity } = useCart();
   const { user } = useAuth();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [imgError, setImgError] = useState(false);
@@ -18,6 +18,7 @@ export default function ProductCard({ product }) {
   const isOutOfStock = product.stock_qty === 0;
   const hasDiscount = price?.discount_percentage > 0;
   const wishlisted = isInWishlist(product.id);
+  const cartQty = getItemQuantity(product.id);
 
   useEffect(() => {
     setImgError(false);
@@ -25,6 +26,7 @@ export default function ProductCard({ product }) {
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) { toast.error('Please login to add to cart'); return; }
     if (user.role !== 'CUSTOMER') { toast.error('Admins cannot add to cart'); return; }
     try {
@@ -32,6 +34,18 @@ export default function ProductCard({ product }) {
       toast.success('Added to cart!');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add to cart');
+    }
+  };
+
+  const handleUpdateQuantity = async (e, newQty) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { toast.error('Please login to update cart'); return; }
+    if (user.role !== 'CUSTOMER') { toast.error('Admins cannot shop'); return; }
+    try {
+      await updateProductQuantity(product.id, newQty);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update cart');
     }
   };
 
@@ -144,19 +158,50 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
-          {/* Add to Cart */}
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className={`neo-btn w-full py-2 text-xs font-black flex items-center justify-center gap-1.5
-              ${isOutOfStock
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 shadow-none'
-                : 'bg-[#F97316] text-white'
-              }`}
-          >
-            <ShoppingCart size={13} strokeWidth={2.5} />
-            {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-          </button>
+          {/* Add to Cart / Quantity Controller */}
+          {isOutOfStock ? (
+            <button
+              disabled
+              className="neo-btn w-full py-2 text-xs font-black flex items-center justify-center gap-1.5 bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 shadow-none"
+            >
+              <ShoppingCart size={13} strokeWidth={2.5} />
+              Out of Stock
+            </button>
+          ) : cartQty > 0 ? (
+            <div 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              className="w-full h-[34px] bg-white neo-border neo-shadow-sm flex items-center justify-between overflow-hidden"
+            >
+              <button
+                type="button"
+                onClick={(e) => handleUpdateQuantity(e, cartQty - 1)}
+                className="w-10 h-full flex items-center justify-center font-black text-base hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-r-2 border-[#0A0A0A]"
+                title="Decrease quantity"
+              >
+                −
+              </button>
+              <span className="flex-1 text-center font-black text-sm text-[#0A0A0A] select-none">
+                {cartQty}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => handleUpdateQuantity(e, cartQty + 1)}
+                className="w-10 h-full flex items-center justify-center font-black text-base hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-l-2 border-[#0A0A0A]"
+                title="Increase quantity"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="neo-btn w-full py-2 text-xs font-black flex items-center justify-center gap-1.5 bg-[#F97316] text-white hover:bg-[#EA580C] cursor-pointer"
+            >
+              <ShoppingCart size={13} strokeWidth={2.5} />
+              Add to Cart
+            </button>
+          )}
         </div>
       </div>
     </Link>

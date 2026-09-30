@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart, getItemQuantity, updateProductQuantity } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +55,7 @@ export default function ProductDetailPage() {
   const isOutOfStock = !stock || stock.quantity === 0;
   const hasDiscount = price?.discount_percentage > 0;
   const wishlisted = isInWishlist(product.id);
+  const inCartQty = getItemQuantity(product.id);
 
   const handleAddToCart = async () => {
     if (!user) { toast.error('Please login'); return; }
@@ -187,11 +188,38 @@ export default function ProductDetailPage() {
           )}
 
           <div className="flex gap-3">
-            <button onClick={handleAddToCart} disabled={isOutOfStock}
-              className={`flex-1 neo-btn py-3 font-black flex items-center justify-center gap-2
-                ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#F97316] text-white'}`}>
-              <ShoppingCart size={18} /> {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </button>
+            {isOutOfStock ? (
+              <button disabled className="flex-1 neo-btn py-3 font-black flex items-center justify-center gap-2 bg-gray-200 text-gray-400 cursor-not-allowed">
+                <ShoppingCart size={18} /> Out of Stock
+              </button>
+            ) : inCartQty > 0 ? (
+              <div className="flex-1 h-12 bg-white neo-border neo-shadow flex items-center justify-between overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => updateProductQuantity(product.id, inCartQty - 1)}
+                  className="w-14 h-full flex items-center justify-center font-black text-xl hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-r-2 border-[#0A0A0A]"
+                  title="Decrease quantity"
+                >
+                  −
+                </button>
+                <div className="flex flex-col items-center justify-center flex-1">
+                  <span className="font-black text-base text-[#0A0A0A]">{inCartQty} in Cart</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateProductQuantity(product.id, Math.min(stock?.quantity || 999, inCartQty + 1))}
+                  className="w-14 h-full flex items-center justify-center font-black text-xl hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer border-l-2 border-[#0A0A0A]"
+                  title="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleAddToCart}
+                className="flex-1 neo-btn py-3 font-black flex items-center justify-center gap-2 bg-[#F97316] text-white hover:bg-[#EA580C] cursor-pointer">
+                <ShoppingCart size={18} /> Add to Cart
+              </button>
+            )}
             <button
               onClick={handleWishlist}
               className={`neo-btn px-4 py-3 transition-colors flex items-center justify-center cursor-pointer

@@ -59,27 +59,35 @@ class CartView(APIView):
 
         if quantity <= 0:
             item.delete()
-            return Response({'message': 'Item removed from cart.'})
+            return Response(CartSerializer(cart, context={'request': request}).data)
 
         item.quantity = quantity
         item.save()
         return Response(CartSerializer(cart, context={'request': request}).data)
 
     def delete(self, request):
-        """Remove item from cart"""
+        """Remove specific item from cart or clear entire cart"""
         cart, _ = Cart.objects.get_or_create(user=request.user)
         item_id = request.data.get('item_id')
+        product_id = request.data.get('product_id')
         clear_all = request.data.get('clear_all', False)
 
         if clear_all:
             cart.items.all().delete()
-            return Response({'message': 'Cart cleared.'})
+            return Response(CartSerializer(cart, context={'request': request}).data)
 
-        try:
-            CartItem.objects.get(pk=item_id, cart=cart).delete()
-            return Response({'message': 'Item removed.'})
-        except CartItem.DoesNotExist:
-            return Response({'error': 'Item not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if item_id:
+            try:
+                CartItem.objects.get(pk=item_id, cart=cart).delete()
+            except CartItem.DoesNotExist:
+                pass
+        elif product_id:
+            try:
+                CartItem.objects.get(product_id=product_id, cart=cart).delete()
+            except CartItem.DoesNotExist:
+                pass
+
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
 
 class PlaceOrderView(APIView):
