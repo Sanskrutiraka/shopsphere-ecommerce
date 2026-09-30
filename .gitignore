@@ -30,10 +30,10 @@ __pycache__/
 htmlcov/
 *.sqlite3
 db.sqlite3
-Backend/db.sqlite3
-Backend/media/
 Backend/staticfiles/
 Backend/static/
+!Backend/media/products/
+!Backend/media/products/*
 
 # Virtual Environments
 venv/
