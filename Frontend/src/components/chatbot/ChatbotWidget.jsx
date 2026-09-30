@@ -40,12 +40,13 @@ export default function ChatbotWidget() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 w-14 h-14 bg-[#F97316] neo-border neo-shadow-sm flex items-center justify-center text-white hover:-translate-y-1 hover:neo-shadow transition-all z-50 ${isOpen ? 'scale-0' : 'scale-100'}`}
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-[#F97316] neo-border neo-shadow-sm flex items-center justify-center text-white hover:-translate-y-1 hover:neo-shadow transition-all z-40 ${isOpen ? 'scale-0' : 'scale-100'}`}
+        aria-label="Open AI Assistant"
       >
-        <MessageSquare size={24} fill="currentColor" />
+        <MessageSquare size={22} fill="currentColor" />
       </button>
 
-      <div className={`fixed bottom-6 right-6 w-[90vw] sm:w-[450px] h-[600px] max-h-[85vh] flex flex-col bg-white neo-card transition-all z-50 ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none origin-bottom-right'}`}>
+      <div className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[420px] h-[550px] max-h-[82vh] flex flex-col bg-white neo-card transition-all z-50 ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none origin-bottom-right'}`}>
         {/* Header */}
         <div className="bg-[#0A0A0A] text-white p-4 flex items-center justify-between border-b-2 border-[#0A0A0A]">
           <div className="flex items-center gap-2">

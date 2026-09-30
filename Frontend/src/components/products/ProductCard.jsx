@@ -2,17 +2,19 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star, Package } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import toast from 'react-hot-toast';
-import api from '../../lib/api';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const price = product.current_price;
   const image = product.primary_image;
   const isOutOfStock = product.stock_qty === 0;
   const hasDiscount = price?.discount_percentage > 0;
+  const wishlisted = isInWishlist(product.id);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -30,9 +32,10 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     e.stopPropagation();
     if (!user) { toast.error('Please login to use wishlist'); return; }
+    if (user.role !== 'CUSTOMER') { toast.error('Only customer accounts can use wishlist'); return; }
     try {
-      const { data } = await api.post('/products/wishlist/', { product_id: product.id });
-      toast.success(data?.message || 'Added to wishlist!');
+      const res = await toggleWishlist(product.id);
+      toast.success(res.message);
     } catch (err) {
       toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update wishlist');
     }
@@ -76,9 +79,20 @@ export default function ProductCard({ product }) {
           <button
             onClick={handleWishlist}
             type="button"
-            className="absolute top-2 right-2 w-8 h-8 bg-white neo-border neo-shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+            className={`absolute top-2 right-2 w-8 h-8 neo-border neo-shadow-sm flex items-center justify-center transition-all z-10 cursor-pointer
+              ${wishlisted
+                ? 'bg-red-50 border-red-500 opacity-100'
+                : 'bg-white hover:bg-red-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
+              }`}
+            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
           >
-            <Heart size={14} strokeWidth={2.5} className="text-red-500" />
+            <Heart
+              size={15}
+              strokeWidth={2.5}
+              fill={wishlisted ? '#EF4444' : 'none'}
+              className={wishlisted ? 'text-red-500' : 'text-gray-700 hover:text-red-500'}
+            />
           </button>
         </div>
 

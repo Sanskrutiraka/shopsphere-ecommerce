@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Menu, Package } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -51,10 +54,35 @@ function CustomerLayout({ children }) {
 }
 
 function AdminLayout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen bg-[#F5F5F5]">
-      <AdminSidebar />
-      <main className="flex-1 ml-64 p-6 page-enter overflow-auto">{children}</main>
+    <div className="min-h-screen bg-[#F5F5F5] flex flex-col lg:flex-row">
+      {/* Mobile Admin Header */}
+      <header className="lg:hidden bg-[#0A0A0A] text-white px-4 py-3 border-b-2 border-[#0A0A0A] flex items-center justify-between sticky top-0 z-30 shadow-md">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-1.5 bg-[#F97316] text-white neo-border flex items-center justify-center cursor-pointer"
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-[#F97316] flex items-center justify-center border border-white/30">
+            <Package size={14} className="text-white" strokeWidth={2.5} />
+          </div>
+          <span className="font-black text-sm">ShopSphere <span className="text-[#F97316] text-xs">Admin</span></span>
+        </div>
+        <div className="w-8" />
+      </header>
+
+      {/* Sidebar (drawer on mobile, fixed on desktop) */}
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Main Content Area */}
+      <main className="flex-1 w-full lg:ml-64 p-4 sm:p-6 md:p-8 page-enter overflow-x-hidden">
+        {children}
+      </main>
     </div>
   );
 }
@@ -99,20 +127,22 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                border: '2px solid #0A0A0A',
-                boxShadow: '3px 3px 0px #0A0A0A',
-                borderRadius: '0px',
-                fontWeight: '600',
-                fontFamily: 'Geist Variable, sans-serif',
-              },
-              success: { iconTheme: { primary: '#F97316', secondary: '#fff' } },
-            }}
-          />
-          <AppRoutes />
+          <WishlistProvider>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '3px 3px 0px #0A0A0A',
+                  borderRadius: '0px',
+                  fontWeight: '600',
+                  fontFamily: 'Geist Variable, sans-serif',
+                },
+                success: { iconTheme: { primary: '#F97316', secondary: '#fff' } },
+              }}
+            />
+            <AppRoutes />
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

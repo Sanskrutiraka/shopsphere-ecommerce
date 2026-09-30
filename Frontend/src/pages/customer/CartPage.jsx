@@ -12,11 +12,11 @@ export default function CartPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse">
         <h1 className="text-3xl font-black mb-8">Shopping Cart</h1>
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1 space-y-4">
             {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-gray-200 neo-border" />)}
           </div>
-          <div className="w-96 h-64 bg-gray-200 neo-border" />
+          <div className="w-full lg:w-96 h-64 bg-gray-200 neo-border" />
         </div>
       </div>
     );
@@ -45,45 +45,48 @@ export default function CartPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 page-enter">
-      <h1 className="text-3xl font-black mb-8">Shopping Cart ({cart.item_count} items)</h1>
+      <h1 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8">Shopping Cart ({cart.item_count} items)</h1>
       
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Cart Items */}
         <div className="flex-1 space-y-4">
           <div className="flex justify-end">
-            <button onClick={clearCart} className="text-sm font-bold text-red-500 hover:text-red-700 flex items-center gap-1">
+            <button onClick={clearCart} className="text-sm font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer">
               <Trash2 size={14} /> Clear Cart
             </button>
           </div>
           
           {cart.items.map(item => (
-            <div key={item.id} className="neo-card p-4 flex gap-4 items-center">
-              <div className="w-20 h-20 bg-gray-100 neo-border flex-shrink-0">
-                {item.product?.primary_image?.image_url ? (
-                  <img src={item.product.primary_image.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-300" /></div>
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <Link to={`/products/${item.product?.slug}`} className="font-black hover:text-[#F97316] line-clamp-1 mb-1">
-                  {item.product?.name}
-                </Link>
-                <div className="text-xs text-gray-500 mb-2">₹{parseFloat(item.unit_price).toLocaleString('en-IN')} each</div>
+            <div key={item.id} className="neo-card p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex gap-3 sm:gap-4 items-center flex-1 w-full min-w-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 neo-border flex-shrink-0">
+                  {item.product?.primary_image?.image_url ? (
+                    <img src={item.product.primary_image.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-300" /></div>
+                  )}
+                </div>
                 
-                <div className="flex items-center gap-4">
-                  <div className="flex neo-border border-gray-300 w-fit">
-                    <button onClick={() => updateItem(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center font-black hover:bg-gray-100">−</button>
-                    <span className="w-8 h-7 flex items-center justify-center font-black text-sm border-x-2 border-gray-300">{item.quantity}</span>
-                    <button onClick={() => updateItem(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center font-black hover:bg-gray-100">+</button>
+                <div className="flex-1 min-w-0">
+                  <Link to={`/products/${item.product?.slug}`} className="font-black hover:text-[#F97316] line-clamp-1 mb-1 text-sm sm:text-base">
+                    {item.product?.name}
+                  </Link>
+                  <div className="text-xs text-gray-500 mb-2">₹{parseFloat(item.unit_price).toLocaleString('en-IN')} each</div>
+                  
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex neo-border border-gray-300 w-fit">
+                      <button onClick={() => updateItem(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center font-black hover:bg-gray-100 cursor-pointer">−</button>
+                      <span className="w-8 h-7 flex items-center justify-center font-black text-xs sm:text-sm border-x-2 border-gray-300">{item.quantity}</span>
+                      <button onClick={() => updateItem(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center font-black hover:bg-gray-100 cursor-pointer">+</button>
+                    </div>
+                    <button onClick={() => removeItem(item.id)} className="text-xs font-bold text-red-500 hover:text-red-700 underline cursor-pointer">Remove</button>
                   </div>
-                  <button onClick={() => removeItem(item.id)} className="text-xs font-bold text-red-500 hover:text-red-700 underline">Remove</button>
                 </div>
               </div>
               
-              <div className="text-right ml-4">
-                <div className="font-black text-lg">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
+              <div className="flex sm:flex-col justify-between sm:justify-center items-baseline sm:items-end w-full sm:w-auto pt-2 sm:pt-0 border-t border-gray-100 sm:border-0">
+                <span className="text-xs text-gray-400 font-bold sm:hidden">Item Total:</span>
+                <div className="font-black text-base sm:text-lg">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
               </div>
             </div>
           ))}

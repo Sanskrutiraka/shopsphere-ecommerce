@@ -11,7 +11,7 @@ export default function RecommendedProductsSection({
   limit = 8,
   wrapperClassName = 'bg-[#FFF7ED] neo-border border-l-0 border-r-0 py-12',
   containerClassName = 'max-w-7xl mx-auto px-4',
-  gridClassName = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4',
+  gridClassName = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4',
   showFeedback = true,
   emptyMessage = '',
 }) {

@@ -4,6 +4,7 @@ import { ShoppingCart, Heart, Star, Package, ChevronLeft, AlertCircle } from 'lu
 import api from '../../lib/api';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import RecommendedProductsSection from '../../components/products/RecommendedProductsSection';
 import toast from 'react-hot-toast';
 
@@ -11,6 +12,7 @@ export default function ProductDetailPage() {
   const { slug } = useParams();
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
@@ -50,6 +52,7 @@ export default function ProductDetailPage() {
   const stock = product.stock;
   const isOutOfStock = !stock || stock.quantity === 0;
   const hasDiscount = price?.discount_percentage > 0;
+  const wishlisted = isInWishlist(product.id);
 
   const handleAddToCart = async () => {
     if (!user) { toast.error('Please login'); return; }
@@ -60,8 +63,13 @@ export default function ProductDetailPage() {
 
   const handleWishlist = async () => {
     if (!user) { toast.error('Please login'); return; }
-    try { await api.post('/products/wishlist/', { product_id: product.id }); toast.success('Added to wishlist!'); }
-    catch (err) { toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update wishlist'); }
+    if (user.role !== 'CUSTOMER') { toast.error('Only customers can use wishlist'); return; }
+    try {
+      const res = await toggleWishlist(product.id);
+      toast.success(res.message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update wishlist');
+    }
   };
 
   const handleReview = async (e) => {
@@ -170,9 +178,19 @@ export default function ProductDetailPage() {
                 ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#F97316] text-white'}`}>
               <ShoppingCart size={18} /> {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             </button>
-            <button onClick={handleWishlist}
-              className="neo-btn px-4 py-3 bg-white hover:bg-red-50 transition-colors">
-              <Heart size={18} className="text-red-500" />
+            <button
+              onClick={handleWishlist}
+              className={`neo-btn px-4 py-3 transition-colors flex items-center justify-center cursor-pointer
+                ${wishlisted ? 'bg-red-50 border-red-500' : 'bg-white hover:bg-red-50'}`}
+              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart
+                size={18}
+                strokeWidth={2.5}
+                fill={wishlisted ? '#EF4444' : 'none'}
+                className={wishlisted ? 'text-red-500' : 'text-gray-700 hover:text-red-500'}
+              />
             </button>
           </div>
         </div>
@@ -228,7 +246,7 @@ export default function ProductDetailPage() {
           limit={4}
           wrapperClassName="bg-transparent"
           containerClassName="max-w-none px-0"
-          gridClassName="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
           emptyMessage="Log in and browse a few products to unlock personalized recommendations."
         />
       </div>

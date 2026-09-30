@@ -1,30 +1,20 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
-import api from '../../lib/api';
+import { Heart, Trash2, ShoppingCart, ArrowRight, Package } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import toast from 'react-hot-toast';
 
 export default function WishlistPage() {
-  const [wishlist, setWishlist] = useState({ items: [] });
-  const [loading, setLoading] = useState(true);
+  const { wishlist, wishlistLoading, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
-
-  const fetchWishlist = () => {
-    api.get('/products/wishlist/').then(r => {
-      setWishlist(r.data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchWishlist(); }, []);
 
   const handleRemove = async (productId) => {
     try {
-      await api.delete('/products/wishlist/', { data: { product_id: productId } });
+      await removeFromWishlist(productId);
       toast.success('Removed from wishlist');
-      fetchWishlist();
-    } catch { toast.error('Failed to remove'); }
+    } catch {
+      toast.error('Failed to remove');
+    }
   };
 
   const handleAddToCart = async (productId, e) => {
@@ -32,10 +22,18 @@ export default function WishlistPage() {
     try {
       await addToCart(productId, 1);
       toast.success('Added to cart');
-    } catch (err) { toast.error(err.response?.data?.error || 'Failed'); }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed');
+    }
   };
 
-  if (loading) return <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse"><div className="h-96 bg-gray-200 neo-border" /></div>;
+  if (wishlistLoading && (!wishlist.items || wishlist.items.length === 0)) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse">
+        <div className="h-96 bg-gray-200 neo-border" />
+      </div>
+    );
+  }
 
   if (wishlist.items.length === 0) {
     return (
@@ -60,7 +58,7 @@ export default function WishlistPage() {
         <span className="neo-badge bg-[#0A0A0A] text-white px-2 py-1 ml-2">{wishlist.items.length} items</span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {wishlist.items.map(item => {
           const product = item.product;
           if (!product) return null;
@@ -69,14 +67,15 @@ export default function WishlistPage() {
 
           return (
             <div key={item.id} className="neo-card flex flex-col group relative">
-              <button 
+              <button
                 onClick={(e) => { e.preventDefault(); handleRemove(product.id); }}
-                className="absolute top-2 right-2 z-10 w-8 h-8 bg-white neo-border neo-shadow-sm flex items-center justify-center text-red-500 hover:bg-red-50 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+                className="absolute top-2 right-2 z-10 w-8 h-8 bg-white neo-border neo-shadow-sm flex items-center justify-center text-red-500 hover:bg-red-50 hover:scale-110 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                 title="Remove"
+                aria-label="Remove from wishlist"
               >
                 <Trash2 size={14} strokeWidth={2.5} />
               </button>
-              
+
               <Link to={`/products/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-100 border-b-2 border-[#0A0A0A]">
                 {product.primary_image?.image_url ? (
                   <img src={product.primary_image.image_url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -85,18 +84,18 @@ export default function WishlistPage() {
                 )}
                 {isOutOfStock && <span className="absolute top-2 left-2 neo-badge bg-red-500 text-white px-2 py-0.5">Out of Stock</span>}
               </Link>
-              
-              <div className="p-3 flex flex-col flex-1">
+
+              <div className="p-3.5 flex flex-col flex-1">
                 <Link to={`/products/${product.slug}`} className="font-black text-sm line-clamp-2 hover:text-[#F97316] mb-2 flex-1">
                   {product.name}
                 </Link>
                 <div className="font-black text-lg mb-3">
                   {price ? `₹${parseFloat(price.selling_price).toLocaleString('en-IN')}` : 'Price TBD'}
                 </div>
-                <button 
+                <button
                   onClick={(e) => handleAddToCart(product.id, e)}
                   disabled={isOutOfStock}
-                  className={`neo-btn w-full py-2 text-xs font-black flex items-center justify-center gap-1.5
+                  className={`neo-btn w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer
                     ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#0A0A0A] text-white'}`}
                 >
                   <ShoppingCart size={14} /> {isOutOfStock ? 'Unavailable' : 'Add to Cart'}

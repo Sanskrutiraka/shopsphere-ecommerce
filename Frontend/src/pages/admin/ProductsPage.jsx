@@ -295,7 +295,7 @@ export default function AdminProductsPage() {
                 <div className="py-10 text-center text-sm font-bold text-gray-500">Loading product details...</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label className="text-xs font-black mb-1 block">Name</label><input required value={form.name} onChange={e=>setForm({...form, name: e.target.value})} onBlur={() => { if (!editingId && imageFiles.length > 0 && !form.description.trim()) generateDescription(); }} className={inputCls} /></div>
                     <div><label className="text-xs font-black mb-1 block">SKU</label><input required value={form.sku} onChange={e=>setForm({...form, sku: e.target.value})} className={inputCls} /></div>
                     <div><label className="text-xs font-black mb-1 block">Category</label>
@@ -313,7 +313,7 @@ export default function AdminProductsPage() {
                         type="button"
                         disabled={isGeneratingDescription}
                         onClick={() => generateDescription({ force: true })}
-                        className="neo-btn bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase font-black disabled:opacity-60"
+                        className="neo-btn bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase font-black disabled:opacity-60 cursor-pointer"
                       >
                         {isGeneratingDescription ? 'Generating...' : (form.description?.trim() ? 'Regenerate' : 'Generate')}
                       </button>
@@ -327,7 +327,7 @@ export default function AdminProductsPage() {
                       <input type="number" required value={form.quantity} onChange={e=>setForm({...form, quantity: e.target.value})} className={inputCls} />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div><label className="text-xs font-black mb-1 block">Initial Base Price</label><input type="number" required value={form.base_price} onChange={e=>setForm({...form, base_price: e.target.value})} className={inputCls} /></div>
                       <div><label className="text-xs font-black mb-1 block">Initial Stock Quantity</label><input type="number" required value={form.quantity} onChange={e=>setForm({...form, quantity: e.target.value})} className={inputCls} /></div>
                     </div>

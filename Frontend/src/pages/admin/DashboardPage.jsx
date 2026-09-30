@@ -69,14 +69,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <StatCard title="Total Revenue" value={formatMoney(stats.total_revenue)} icon={Banknote} color="bg-green-500" />
         <StatCard title="Total Orders" value={stats.total_orders} icon={ShoppingBag} color="bg-blue-500" />
         <StatCard title="Total Products" value={stats.total_products} icon={Package} color="bg-[#F97316]" />
         <StatCard title="Total Users" value={stats.total_users} icon={Users} color="bg-purple-500" sub={`${stats.total_customers} Customers`} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <StatCard title="Low Stock Items" value={lowStockProducts.length} icon={Package} color="bg-red-500" sub="At or below minimum level" />
         <StatCard
           title="Top Customer Today"

@@ -92,32 +92,32 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
-      <h1 className="text-3xl font-black mb-8">My Account</h1>
+      <h1 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8">My Account</h1>
       
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Sidebar */}
-        <div className="w-full md:w-64 space-y-2 flex-shrink-0">
-          <button onClick={() => setActiveTab('profile')} className={`w-full text-left px-4 py-3 font-black text-sm flex items-center gap-3 transition-colors neo-border ${activeTab === 'profile' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
-            <User size={18} /> Personal Info
+        {/* Sidebar Tabs */}
+        <div className="w-full md:w-64 grid grid-cols-3 md:flex md:flex-col gap-2 flex-shrink-0">
+          <button onClick={() => setActiveTab('profile')} className={`text-center md:text-left px-3 sm:px-4 py-2.5 sm:py-3 font-black text-xs sm:text-sm flex flex-col md:flex-row items-center gap-1.5 md:gap-3 transition-colors neo-border cursor-pointer ${activeTab === 'profile' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
+            <User size={18} /> <span>Profile</span>
           </button>
-          <button onClick={() => setActiveTab('addresses')} className={`w-full text-left px-4 py-3 font-black text-sm flex items-center gap-3 transition-colors neo-border ${activeTab === 'addresses' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
-            <MapPin size={18} /> Addresses
+          <button onClick={() => setActiveTab('addresses')} className={`text-center md:text-left px-3 sm:px-4 py-2.5 sm:py-3 font-black text-xs sm:text-sm flex flex-col md:flex-row items-center gap-1.5 md:gap-3 transition-colors neo-border cursor-pointer ${activeTab === 'addresses' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
+            <MapPin size={18} /> <span>Addresses</span>
           </button>
-          <button onClick={() => setActiveTab('security')} className={`w-full text-left px-4 py-3 font-black text-sm flex items-center gap-3 transition-colors neo-border ${activeTab === 'security' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
-            <Lock size={18} /> Security
+          <button onClick={() => setActiveTab('security')} className={`text-center md:text-left px-3 sm:px-4 py-2.5 sm:py-3 font-black text-xs sm:text-sm flex flex-col md:flex-row items-center gap-1.5 md:gap-3 transition-colors neo-border cursor-pointer ${activeTab === 'security' ? 'bg-[#F97316] text-white neo-shadow border-[#0A0A0A]' : 'bg-white hover:bg-orange-50'}`}>
+            <Lock size={18} /> <span>Security</span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 neo-card p-6">
+        <div className="flex-1 neo-card p-4 sm:p-6">
           {activeTab === 'profile' && (
             <div>
-              <h2 className="text-xl font-black mb-6 pb-2 border-b-2 border-gray-100">Personal Information</h2>
+              <h2 className="text-lg sm:text-xl font-black mb-6 pb-2 border-b-2 border-gray-100">Personal Information</h2>
               <div className="mb-6 p-4 bg-gray-50 neo-border border-dashed text-sm">
-                <span className="font-bold">Email:</span> {user?.email} <span className="text-xs text-gray-500">(Cannot be changed)</span>
+                <span className="font-bold">Email:</span> {user?.email} <span className="text-xs text-gray-500 block sm:inline sm:ml-1">(Cannot be changed)</span>
               </div>
               <form onSubmit={handleProfileSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelCls}>First Name</label>
                     <input required value={profileForm.first_name} onChange={e => setProfileForm({...profileForm, first_name: e.target.value})} className={inputCls} />
@@ -131,7 +131,7 @@ export default function ProfilePage() {
                   <label className={labelCls}>Phone Number</label>
                   <input value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="+91..." className={inputCls} />
                 </div>
-                <button type="submit" disabled={savingProfile} className="neo-btn mt-4 px-6 py-2 bg-[#0A0A0A] text-white font-black text-sm flex items-center gap-2">
+                <button type="submit" disabled={savingProfile} className="neo-btn mt-4 px-6 py-2.5 bg-[#0A0A0A] text-white font-black text-sm flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
                   <Save size={16} /> {savingProfile ? 'Saving...' : 'Save Changes'}
                 </button>
               </form>
@@ -141,8 +141,8 @@ export default function ProfilePage() {
           {activeTab === 'addresses' && (
             <div>
               <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-gray-100">
-                <h2 className="text-xl font-black">Saved Addresses</h2>
-                <button onClick={() => setShowAddressForm(!showAddressForm)} className="text-sm font-bold text-[#F97316] flex items-center gap-1 hover:underline">
+                <h2 className="text-lg sm:text-xl font-black">Saved Addresses</h2>
+                <button onClick={() => setShowAddressForm(!showAddressForm)} className="text-sm font-bold text-[#F97316] flex items-center gap-1 hover:underline cursor-pointer">
                   <Plus size={16} /> Add New
                 </button>
               </div>
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                     <div><label className={labelCls}>Label (Home, Work, etc)</label><input required value={addrForm.label} onChange={e=>setAddrForm({...addrForm, label: e.target.value})} className={inputCls}/></div>
                     <div><label className={labelCls}>Address Line 1</label><input required value={addrForm.address_line1} onChange={e=>setAddrForm({...addrForm, address_line1: e.target.value})} className={inputCls}/></div>
                     <div><label className={labelCls}>Address Line 2 (Optional)</label><input value={addrForm.address_line2} onChange={e=>setAddrForm({...addrForm, address_line2: e.target.value})} className={inputCls}/></div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div><label className={labelCls}>City</label><input required value={addrForm.city} onChange={e=>setAddrForm({...addrForm, city: e.target.value})} className={inputCls}/></div>
                       <div><label className={labelCls}>State</label><input required value={addrForm.state} onChange={e=>setAddrForm({...addrForm, state: e.target.value})} className={inputCls}/></div>
                       <div><label className={labelCls}>PIN</label><input required value={addrForm.pincode} onChange={e=>setAddrForm({...addrForm, pincode: e.target.value})} className={inputCls}/></div>
@@ -163,28 +163,28 @@ export default function ProfilePage() {
                       <input type="checkbox" checked={addrForm.is_default} onChange={e=>setAddrForm({...addrForm, is_default: e.target.checked})} className="w-4 h-4 accent-[#F97316] neo-border"/> Make Default
                     </label>
                     <div className="flex gap-2 mt-4 pt-4 border-t-2 border-orange-200">
-                      <button type="button" onClick={() => setShowAddressForm(false)} className="neo-btn px-4 py-2 bg-white font-black text-sm">Cancel</button>
-                      <button type="submit" className="neo-btn px-6 py-2 bg-[#F97316] text-white font-black text-sm">Save Address</button>
+                      <button type="button" onClick={() => setShowAddressForm(false)} className="neo-btn px-4 py-2 bg-white font-black text-sm cursor-pointer">Cancel</button>
+                      <button type="submit" className="neo-btn px-6 py-2 bg-[#F97316] text-white font-black text-sm cursor-pointer">Save Address</button>
                     </div>
                   </div>
                 </form>
               )}
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {addresses.map(a => (
                   <div key={a.id} className="p-4 neo-border bg-white relative group">
-                    <div className="font-black mb-1">{a.label} {a.is_default && <span className="neo-badge bg-[#0A0A0A] text-white px-1.5 ml-2">Default</span>}</div>
+                    <div className="font-black mb-1 pr-8">{a.label} {a.is_default && <span className="neo-badge bg-[#0A0A0A] text-white px-1.5 ml-2">Default</span>}</div>
                     <div className="text-sm text-gray-600 leading-relaxed">
                       {a.address_line1} {a.address_line2}<br/>
                       {a.city}, {a.state} {a.pincode}
                     </div>
-                    <button onClick={() => handleDeleteAddress(a.id)} className="absolute top-3 right-3 text-red-500 hover:bg-red-50 p-1 neo-border opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleDeleteAddress(a.id)} className="absolute top-3 right-3 text-red-500 hover:bg-red-50 p-1.5 neo-border opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer" aria-label="Delete address">
                       <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
                 {addresses.length === 0 && !showAddressForm && (
-                  <div className="col-span-2 text-center p-8 text-gray-400 font-medium border-2 border-dashed border-gray-300">
+                  <div className="col-span-1 sm:col-span-2 text-center p-8 text-gray-400 font-medium border-2 border-dashed border-gray-300">
                     No addresses saved yet.
                   </div>
                 )}

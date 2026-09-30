@@ -29,35 +29,35 @@ export default function HomePage() {
     <div className="page-enter">
       {/* Hero Section */}
       <section className="bg-[#F97316] neo-border border-l-0 border-r-0 border-t-0">
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 py-10 sm:py-16 md:py-24">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 neo-badge bg-[#0A0A0A] text-white px-3 py-1.5 mb-6">
+              <div className="inline-flex items-center gap-2 neo-badge bg-[#0A0A0A] text-white px-3 py-1.5 mb-4 sm:mb-6">
                 <Zap size={12} fill="white" />
                 <span>Flash Deals Available Now</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-4">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-4">
                 Shop Smart.<br />
                 Live Better.<br />
                 <span className="text-[#0A0A0A]">Save More.</span>
               </h1>
-              <p className="text-orange-100 text-lg font-medium mb-8 max-w-md">
+              <p className="text-orange-100 text-base sm:text-lg font-medium mb-6 sm:mb-8 max-w-md">
                 Discover thousands of products at unbeatable prices. Fast delivery, easy returns, and 24/7 support.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link to="/products"
-                  className="neo-btn bg-[#0A0A0A] text-white px-8 py-3 text-base font-black flex items-center gap-2">
+                  className="neo-btn bg-[#0A0A0A] text-white px-6 sm:px-8 py-3 text-base font-black flex items-center justify-center gap-2">
                   Shop Now <ArrowRight size={18} />
                 </Link>
                 <Link to="/register"
-                  className="neo-btn bg-white text-[#0A0A0A] px-8 py-3 text-base font-black">
+                  className="neo-btn bg-white text-[#0A0A0A] px-6 sm:px-8 py-3 text-base font-black text-center">
                   Join Free
                 </Link>
               </div>
             </div>
             <div className="hidden md:grid grid-cols-2 gap-3">
               {['🛍️ 10K+ Products', '⚡ Same Day Dispatch', '🔒 Secure Payments', '⭐ 4.8 Rating'].map((item, i) => (
-                <div key={i} className={`neo-card p-6 ${i === 1 ? 'bg-[#0A0A0A] text-white' : 'bg-white'}`}>
+                <div key={i} className={`neo-card p-5 lg:p-6 ${i === 1 ? 'bg-[#0A0A0A] text-white' : 'bg-white'}`}>
                   <div className="text-3xl mb-2">{item.split(' ')[0]}</div>
                   <div className="font-black text-sm">{item.split(' ').slice(1).join(' ')}</div>
                 </div>
@@ -69,8 +69,8 @@ export default function HomePage() {
 
       {/* Features Bar */}
       <section className="border-b-2 border-[#0A0A0A] bg-[#0A0A0A]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-5 sm:py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { icon: Truck, label: 'Free Shipping', sub: 'On orders above ₹500' },
               { icon: Shield, label: 'Secure Payments', sub: '100% Protected' },
