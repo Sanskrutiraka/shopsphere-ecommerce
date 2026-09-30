@@ -49,49 +49,16 @@ def _resolve_image_url(image_field_value, product_id=None, request=None):
     import urllib.parse
     from django.conf import settings
 
-    if not image_field_value:
-        pass
-    else:
-        # 1. Check if image_field_value is a CloudinaryResource or FieldFile with .url
-        if hasattr(image_field_value, 'url'):
-            try:
-                url = image_field_value.url
-                if url:
-                    if url.startswith('http://res.cloudinary.com'):
-                        return url.replace('http://', 'https://')
-                    if url.startswith('http://') or url.startswith('https://'):
-                        return url
-            except Exception:
-                pass
-
-        raw_str = str(image_field_value).strip()
-
-        # 2. If it's already a full valid HTTP/HTTPS URL
-        if raw_str.startswith('http://') or raw_str.startswith('https://'):
-            if raw_str.startswith('http://res.cloudinary.com'):
-                return raw_str.replace('http://', 'https://')
-            return raw_str
-
-        # 3. If Cloudinary cloud name is configured, check for Cloudinary path/ID
-        cloud_name = (
-            getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME')
-            or os.getenv('CLOUDINARY_CLOUD_NAME')
-        )
-        if cloud_name and raw_str:
-            if 'image/upload/' in raw_str:
-                clean_path = raw_str.split('image/upload/', 1)[1].lstrip('/')
-                return f"https://res.cloudinary.com/{cloud_name}/image/upload/{clean_path}"
-            elif raw_str.startswith('v') and '/' in raw_str:
-                return f"https://res.cloudinary.com/{cloud_name}/image/upload/{raw_str}"
-
     raw_str = str(image_field_value).strip() if image_field_value else ""
-    clean = _extract_media_filename(raw_str)
 
     def _format_media_url(path):
         quoted_path = urllib.parse.quote(path.replace('\\', '/').lstrip('/'))
         media_path = f"/media/{quoted_path}"
         if request:
-            return request.build_absolute_uri(media_path)
+            try:
+                return request.build_absolute_uri(media_path)
+            except Exception:
+                pass
         render_host = getattr(settings, 'RENDER_EXTERNAL_HOSTNAME', None) or os.getenv('RENDER_EXTERNAL_HOSTNAME')
         if render_host:
             return f"https://{render_host}{media_path}"
@@ -100,7 +67,9 @@ def _resolve_image_url(image_field_value, product_id=None, request=None):
             return f"{backend_url}{media_path}"
         return f"http://127.0.0.1:8000{media_path}"
 
-    # 4. Check if clean exists in local MEDIA_ROOT
+    clean = _extract_media_filename(raw_str)
+
+    # 1. First priority: Check if file actually exists on local disk (MEDIA_ROOT)
     if clean:
         p1 = os.path.join(settings.MEDIA_ROOT, clean.replace('/', os.sep))
         if os.path.isfile(p1):
@@ -114,15 +83,7 @@ def _resolve_image_url(image_field_value, product_id=None, request=None):
         if os.path.isfile(p3):
             return _format_media_url(os.path.basename(clean))
 
-    # 5. If Cloudinary cloud name is configured and not found locally, construct Cloudinary URL
-    cloud_name = (
-        getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME')
-        or os.getenv('CLOUDINARY_CLOUD_NAME')
-    )
-    if cloud_name and clean:
-        return f"https://res.cloudinary.com/{cloud_name}/image/upload/{clean}"
-
-    # 6. Check for any file starting with product_id in local media/products/
+    # 2. Check if product_id has an image file on disk in media/products/
     if product_id:
         prod_dir = os.path.join(settings.MEDIA_ROOT, 'products')
         if os.path.isdir(prod_dir):
@@ -131,7 +92,34 @@ def _resolve_image_url(image_field_value, product_id=None, request=None):
                 if fname.startswith(prefix):
                     return _format_media_url(f"products/{fname}")
 
-    # 7. Fallback: return formatted media URL
+    # 3. Check if image_field_value is a CloudinaryResource or FieldFile with .url
+    if image_field_value and hasattr(image_field_value, 'url'):
+        try:
+            url = image_field_value.url
+            if url and ('res.cloudinary.com' in url or url.startswith('http')):
+                if url.startswith('http://res.cloudinary.com'):
+                    url = url.replace('http://', 'https://')
+                return url
+        except Exception:
+            pass
+
+    # 4. If raw_str is a full valid HTTP/HTTPS URL
+    if raw_str.startswith('http://') or raw_str.startswith('https://'):
+        if raw_str.startswith('http://res.cloudinary.com'):
+            return raw_str.replace('http://', 'https://')
+        return raw_str
+
+    # 5. If Cloudinary cloud name is configured and raw_str looks like a Cloudinary path
+    cloud_name = (
+        getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME')
+        or os.getenv('CLOUDINARY_CLOUD_NAME')
+    )
+    if cloud_name and raw_str:
+        if 'image/upload/' in raw_str:
+            clean_path = raw_str.split('image/upload/', 1)[1].lstrip('/')
+            return f"https://res.cloudinary.com/{cloud_name}/image/upload/{clean_path}"
+
+    # 6. Fallback formatted media URL
     if clean:
         if not clean.startswith('products/'):
             clean = f"products/{clean}"
