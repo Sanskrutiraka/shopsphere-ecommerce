@@ -5,14 +5,21 @@ from .models import Category, Product, ProductImage, ProductStock, PriceHistory,
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
     product_count = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
         fields = ['id', 'name', 'slug', 'description', 'image', 'parent', 'is_active', 'children', 'product_count']
         read_only_fields = ['slug', 'children', 'product_count']
 
+    def get_image(self, obj):
+        if not obj or not obj.image:
+            return None
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        return _resolve_image_url(obj.image, request=request)
+
     def get_children(self, obj):
-        return CategorySerializer(obj.children.filter(is_active=True), many=True).data
+        return CategorySerializer(obj.children.filter(is_active=True), many=True, context=self.context).data
 
     def get_product_count(self, obj):
         return obj.products.filter(is_active=True).count()
@@ -37,47 +44,98 @@ def _extract_media_filename(val_str):
     return s.lstrip('/')
 
 
-def _resolve_image_url(image_field_value, product_id=None):
+def _resolve_image_url(image_field_value, product_id=None, request=None):
     import os
     import urllib.parse
     from django.conf import settings
 
+    if not image_field_value:
+        pass
+    else:
+        # 1. Check if image_field_value is a CloudinaryResource or FieldFile with .url
+        if hasattr(image_field_value, 'url'):
+            try:
+                url = image_field_value.url
+                if url:
+                    if url.startswith('http://res.cloudinary.com'):
+                        return url.replace('http://', 'https://')
+                    if url.startswith('http://') or url.startswith('https://'):
+                        return url
+            except Exception:
+                pass
+
+        raw_str = str(image_field_value).strip()
+
+        # 2. If it's already a full valid HTTP/HTTPS URL
+        if raw_str.startswith('http://') or raw_str.startswith('https://'):
+            if raw_str.startswith('http://res.cloudinary.com'):
+                return raw_str.replace('http://', 'https://')
+            return raw_str
+
+        # 3. If Cloudinary cloud name is configured, check for Cloudinary path/ID
+        cloud_name = (
+            getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME')
+            or os.getenv('CLOUDINARY_CLOUD_NAME')
+        )
+        if cloud_name and raw_str:
+            if 'image/upload/' in raw_str:
+                clean_path = raw_str.split('image/upload/', 1)[1].lstrip('/')
+                return f"https://res.cloudinary.com/{cloud_name}/image/upload/{clean_path}"
+            elif raw_str.startswith('v') and '/' in raw_str:
+                return f"https://res.cloudinary.com/{cloud_name}/image/upload/{raw_str}"
+
     raw_str = str(image_field_value).strip() if image_field_value else ""
-
-    # 1. Full external URL (not dummy Cloudinary)
-    if (raw_str.startswith('http://') or raw_str.startswith('https://')) and 'res.cloudinary.com' not in raw_str:
-        return raw_str
-
     clean = _extract_media_filename(raw_str)
 
-    # 2. Check if clean exists in MEDIA_ROOT
+    def _format_media_url(path):
+        quoted_path = urllib.parse.quote(path.replace('\\', '/').lstrip('/'))
+        media_path = f"/media/{quoted_path}"
+        if request:
+            return request.build_absolute_uri(media_path)
+        render_host = getattr(settings, 'RENDER_EXTERNAL_HOSTNAME', None) or os.getenv('RENDER_EXTERNAL_HOSTNAME')
+        if render_host:
+            return f"https://{render_host}{media_path}"
+        backend_url = os.getenv('BACKEND_URL', '').rstrip('/')
+        if backend_url:
+            return f"{backend_url}{media_path}"
+        return f"http://127.0.0.1:8000{media_path}"
+
+    # 4. Check if clean exists in local MEDIA_ROOT
     if clean:
         p1 = os.path.join(settings.MEDIA_ROOT, clean.replace('/', os.sep))
         if os.path.isfile(p1):
-            return f"http://127.0.0.1:8000/media/{urllib.parse.quote(clean)}"
+            return _format_media_url(clean)
 
         p2 = os.path.join(settings.MEDIA_ROOT, 'products', os.path.basename(clean))
         if os.path.isfile(p2):
-            return f"http://127.0.0.1:8000/media/products/{urllib.parse.quote(os.path.basename(clean))}"
+            return _format_media_url(f"products/{os.path.basename(clean)}")
 
         p3 = os.path.join(settings.MEDIA_ROOT, os.path.basename(clean))
         if os.path.isfile(p3):
-            return f"http://127.0.0.1:8000/media/{urllib.parse.quote(os.path.basename(clean))}"
+            return _format_media_url(os.path.basename(clean))
 
-    # 3. Check for any file starting with product_id in media/products/
+    # 5. If Cloudinary cloud name is configured and not found locally, construct Cloudinary URL
+    cloud_name = (
+        getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME')
+        or os.getenv('CLOUDINARY_CLOUD_NAME')
+    )
+    if cloud_name and clean:
+        return f"https://res.cloudinary.com/{cloud_name}/image/upload/{clean}"
+
+    # 6. Check for any file starting with product_id in local media/products/
     if product_id:
         prod_dir = os.path.join(settings.MEDIA_ROOT, 'products')
         if os.path.isdir(prod_dir):
             prefix = f"{product_id}_"
             for fname in os.listdir(prod_dir):
                 if fname.startswith(prefix):
-                    return f"http://127.0.0.1:8000/media/products/{urllib.parse.quote(fname)}"
+                    return _format_media_url(f"products/{fname}")
 
-    # 4. Fallback: if clean has filename, return local media URL
+    # 7. Fallback: return formatted media URL
     if clean:
         if not clean.startswith('products/'):
             clean = f"products/{clean}"
-        return f"http://127.0.0.1:8000/media/{urllib.parse.quote(clean)}"
+        return _format_media_url(clean)
 
     return None
 
@@ -92,7 +150,12 @@ class ProductImageSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         if not obj:
             return None
-        return _resolve_image_url(getattr(obj, 'image', None), product_id=getattr(obj, 'product_id', None))
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        return _resolve_image_url(
+            getattr(obj, 'image', None),
+            product_id=getattr(obj, 'product_id', None),
+            request=request
+        )
 
 
 class ProductStockSerializer(serializers.ModelSerializer):
@@ -150,13 +213,14 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_primary_image(self, obj):
+        request = self.context.get('request') if hasattr(self, 'context') else None
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
         if img:
             data = ProductImageSerializer(img, context=self.context).data
             if data and not data.get('image_url'):
-                data['image_url'] = _resolve_image_url(getattr(img, 'image', None), product_id=obj.id)
+                data['image_url'] = _resolve_image_url(getattr(img, 'image', None), product_id=obj.id, request=request)
             return data
-        disk_url = _resolve_image_url(None, product_id=obj.id)
+        disk_url = _resolve_image_url(None, product_id=obj.id, request=request)
         if disk_url:
             return {
                 'id': 0,
@@ -199,14 +263,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_images(self, obj):
+        request = self.context.get('request') if hasattr(self, 'context') else None
         imgs = obj.images.all()
         if imgs.exists():
             data_list = ProductImageSerializer(imgs, many=True, context=self.context).data
             for d in data_list:
                 if not d.get('image_url'):
-                    d['image_url'] = _resolve_image_url(d.get('image'), product_id=obj.id)
+                    d['image_url'] = _resolve_image_url(d.get('image'), product_id=obj.id, request=request)
             return data_list
-        disk_url = _resolve_image_url(None, product_id=obj.id)
+        disk_url = _resolve_image_url(None, product_id=obj.id, request=request)
         if disk_url:
             return [{
                 'id': 0,
