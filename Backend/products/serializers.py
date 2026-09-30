@@ -18,6 +18,70 @@ class CategorySerializer(serializers.ModelSerializer):
         return obj.products.filter(is_active=True).count()
 
 
+def _extract_media_filename(val_str):
+    if not val_str:
+        return ""
+    s = str(val_str).replace('\\', '/').strip()
+    if '://' in s:
+        s = s.split('://', 1)[1]
+        if '/' in s:
+            s = s.split('/', 1)[1]
+    if 'image/upload/' in s:
+        s = s.split('image/upload/', 1)[1]
+    import re
+    s = re.sub(r'^v\d+/', '', s)
+    if s.startswith('/media/'):
+        s = s[7:]
+    elif s.startswith('media/'):
+        s = s[6:]
+    return s.lstrip('/')
+
+
+def _resolve_image_url(image_field_value, product_id=None):
+    import os
+    import urllib.parse
+    from django.conf import settings
+
+    raw_str = str(image_field_value).strip() if image_field_value else ""
+
+    # 1. Full external URL (not dummy Cloudinary)
+    if (raw_str.startswith('http://') or raw_str.startswith('https://')) and 'res.cloudinary.com' not in raw_str:
+        return raw_str
+
+    clean = _extract_media_filename(raw_str)
+
+    # 2. Check if clean exists in MEDIA_ROOT
+    if clean:
+        p1 = os.path.join(settings.MEDIA_ROOT, clean.replace('/', os.sep))
+        if os.path.isfile(p1):
+            return f"http://127.0.0.1:8000/media/{urllib.parse.quote(clean)}"
+
+        p2 = os.path.join(settings.MEDIA_ROOT, 'products', os.path.basename(clean))
+        if os.path.isfile(p2):
+            return f"http://127.0.0.1:8000/media/products/{urllib.parse.quote(os.path.basename(clean))}"
+
+        p3 = os.path.join(settings.MEDIA_ROOT, os.path.basename(clean))
+        if os.path.isfile(p3):
+            return f"http://127.0.0.1:8000/media/{urllib.parse.quote(os.path.basename(clean))}"
+
+    # 3. Check for any file starting with product_id in media/products/
+    if product_id:
+        prod_dir = os.path.join(settings.MEDIA_ROOT, 'products')
+        if os.path.isdir(prod_dir):
+            prefix = f"{product_id}_"
+            for fname in os.listdir(prod_dir):
+                if fname.startswith(prefix):
+                    return f"http://127.0.0.1:8000/media/products/{urllib.parse.quote(fname)}"
+
+    # 4. Fallback: if clean has filename, return local media URL
+    if clean:
+        if not clean.startswith('products/'):
+            clean = f"products/{clean}"
+        return f"http://127.0.0.1:8000/media/{urllib.parse.quote(clean)}"
+
+    return None
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -26,7 +90,9 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'image_url', 'alt_text', 'is_primary', 'order']
 
     def get_image_url(self, obj):
-        return str(obj.image.url) if obj.image else None
+        if not obj:
+            return None
+        return _resolve_image_url(getattr(obj, 'image', None), product_id=getattr(obj, 'product_id', None))
 
 
 class ProductStockSerializer(serializers.ModelSerializer):
@@ -85,7 +151,22 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_primary_image(self, obj):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
-        return ProductImageSerializer(img).data if img else None
+        if img:
+            data = ProductImageSerializer(img, context=self.context).data
+            if data and not data.get('image_url'):
+                data['image_url'] = _resolve_image_url(getattr(img, 'image', None), product_id=obj.id)
+            return data
+        disk_url = _resolve_image_url(None, product_id=obj.id)
+        if disk_url:
+            return {
+                'id': 0,
+                'image': disk_url,
+                'image_url': disk_url,
+                'alt_text': obj.name,
+                'is_primary': True,
+                'order': 0
+            }
+        return None
 
     def get_stock_qty(self, obj):
         return obj.stock.quantity if hasattr(obj, 'stock') else 0
@@ -101,7 +182,7 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
-    images = ProductImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
     stock = ProductStockSerializer(read_only=True)
     current_price = PriceHistorySerializer(read_only=True)
     price_history = PriceHistorySerializer(many=True, read_only=True)
@@ -116,6 +197,26 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'category', 'images', 'stock', 'current_price', 'price_history',
             'reviews', 'avg_rating', 'is_active', 'is_featured', 'created_at', 'updated_at'
         ]
+
+    def get_images(self, obj):
+        imgs = obj.images.all()
+        if imgs.exists():
+            data_list = ProductImageSerializer(imgs, many=True, context=self.context).data
+            for d in data_list:
+                if not d.get('image_url'):
+                    d['image_url'] = _resolve_image_url(d.get('image'), product_id=obj.id)
+            return data_list
+        disk_url = _resolve_image_url(None, product_id=obj.id)
+        if disk_url:
+            return [{
+                'id': 0,
+                'image': disk_url,
+                'image_url': disk_url,
+                'alt_text': obj.name,
+                'is_primary': True,
+                'order': 0
+            }]
+        return []
 
     def get_avg_rating(self, obj):
         reviews = obj.reviews.all()

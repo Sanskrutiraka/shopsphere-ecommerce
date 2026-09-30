@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star, Package } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
@@ -9,12 +10,18 @@ export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [imgError, setImgError] = useState(false);
 
   const price = product.current_price;
   const image = product.primary_image;
+  const imageUrl = image?.image_url || image?.image || (typeof image === 'string' ? image : null) || product.image;
   const isOutOfStock = product.stock_qty === 0;
   const hasDiscount = price?.discount_percentage > 0;
   const wishlisted = isInWishlist(product.id);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -46,8 +53,11 @@ export default function ProductCard({ product }) {
       <div className="neo-card neo-hover overflow-hidden h-full flex flex-col">
         {/* Image */}
         <div className="relative aspect-square overflow-hidden bg-gray-100 neo-border border-l-0 border-r-0 border-t-0">
-          {image?.image_url ? (
-            <img src={image.image_url} alt={image.alt_text || product.name}
+          {imageUrl && !imgError ? (
+            <img 
+              src={imageUrl} 
+              alt={image?.alt_text || product.name}
+              onError={() => setImgError(true)}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

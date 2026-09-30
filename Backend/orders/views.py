@@ -17,7 +17,7 @@ class CartView(APIView):
 
     def get(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
     def post(self, request):
         """Add item or update quantity in cart"""
@@ -44,7 +44,7 @@ class CartView(APIView):
         else:
             item.quantity = quantity
         item.save()
-        return Response(CartSerializer(cart).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(CartSerializer(cart, context={'request': request}).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     def put(self, request):
         """Update specific item quantity"""
@@ -63,7 +63,7 @@ class CartView(APIView):
 
         item.quantity = quantity
         item.save()
-        return Response(CartSerializer(cart).data)
+        return Response(CartSerializer(cart, context={'request': request}).data)
 
     def delete(self, request):
         """Remove item from cart"""

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Cart, CartItem, Order, OrderItem, OrderStatusHistory
-from products.serializers import ProductListSerializer
+from products.serializers import ProductListSerializer, ProductImageSerializer
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -25,12 +25,22 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
+    product_slug = serializers.CharField(source='product.slug', read_only=True)
+
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'product', 'product_name', 'product_sku',
+            'id', 'product', 'product_name', 'product_sku', 'product_slug', 'product_image',
             'quantity', 'unit_price', 'discount_percentage', 'subtotal'
         ]
+
+    def get_product_image(self, obj):
+        if obj.product:
+            img = obj.product.images.filter(is_primary=True).first() or obj.product.images.first()
+            if img:
+                return ProductImageSerializer(img, context=self.context).data
+        return None
 
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):

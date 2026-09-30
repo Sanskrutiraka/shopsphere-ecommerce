@@ -16,6 +16,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [mainImgError, setMainImgError] = useState(false);
   const [qty, setQty] = useState(1);
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', comment: '' });
 
@@ -23,6 +24,7 @@ export default function ProductDetailPage() {
     api.get(`/products/${slug}/`).then(r => {
       setProduct(r.data);
       setLoading(false);
+      setMainImgError(false);
     }).catch(() => setLoading(false));
   }, [slug]);
 
@@ -94,21 +96,33 @@ export default function ProductDetailPage() {
         {/* Images */}
         <div>
           <div className="neo-border neo-shadow aspect-square overflow-hidden bg-gray-100 mb-3">
-            {images[activeImage]?.image_url ? (
-              <img src={images[activeImage].image_url} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center"><Package size={80} className="text-gray-300" /></div>
-            )}
+            {(() => {
+              const activeImgObj = images[activeImage] || images[0] || product.primary_image;
+              const activeSrc = activeImgObj?.image_url || activeImgObj?.image || (typeof activeImgObj === 'string' ? activeImgObj : null) || product.image;
+              return activeSrc && !mainImgError ? (
+                <img 
+                  src={activeSrc} 
+                  alt={product.name} 
+                  onError={() => setMainImgError(true)}
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center"><Package size={80} className="text-gray-300" /></div>
+              );
+            })()}
           </div>
           {images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {images.map((img, i) => (
-                <button key={i} onClick={() => setActiveImage(i)}
-                  className={`w-16 h-16 shrink-0 neo-border overflow-hidden transition-all
-                    ${i === activeImage ? 'neo-shadow border-[#F97316]' : 'opacity-60 hover:opacity-100'}`}>
-                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {images.map((img, i) => {
+                const thumbSrc = img?.image_url || img?.image || (typeof img === 'string' ? img : '');
+                return (
+                  <button key={i} onClick={() => setActiveImage(i)}
+                    className={`w-16 h-16 shrink-0 neo-border overflow-hidden transition-all
+                      ${i === activeImage ? 'neo-shadow border-[#F97316]' : 'opacity-60 hover:opacity-100'}`}>
+                    <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

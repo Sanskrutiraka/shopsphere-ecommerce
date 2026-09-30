@@ -6,7 +6,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils.text import slugify
 from django.utils import timezone
 import os
+import uuid
 import importlib
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.db.models import OuterRef, Subquery, DecimalField, ExpressionWrapper, F, Value
 from django.db.models.functions import Coalesce
 
@@ -17,6 +20,33 @@ from .serializers import (
     PriceHistorySerializer, WishlistSerializer, WishlistItemSerializer, ProductReviewSerializer
 )
 from accounts.permissions import IsAdminUser
+
+
+def _save_product_image(product, image_file, is_primary, alt_text, order):
+    """Save product image, attempting Cloudinary first, and falling back to local file storage if Cloudinary fails or is unconfigured."""
+    try:
+        return ProductImage.objects.create(
+            product=product,
+            image=image_file,
+            is_primary=is_primary,
+            alt_text=alt_text,
+            order=order
+        )
+    except Exception:
+        products_dir = os.path.join(settings.MEDIA_ROOT, 'products')
+        os.makedirs(products_dir, exist_ok=True)
+        fs = FileSystemStorage(location=products_dir, base_url='/media/products/')
+        filename = f"{product.id}_{uuid.uuid4().hex[:8]}_{getattr(image_file, 'name', 'img.jpg')}"
+        saved_name = fs.save(filename, image_file)
+        relative_path = f"products/{saved_name}"
+        
+        return ProductImage.objects.create(
+            product=product,
+            image=relative_path,
+            is_primary=is_primary,
+            alt_text=alt_text,
+            order=order
+        )
 
 
 def _fallback_product_description(name: str) -> str:
@@ -187,13 +217,16 @@ class AdminProductListView(generics.ListCreateAPIView):
             )
             
         # Handle multiple images if provided
-        images = self.request.FILES.getlist('images')
+        images = self.request.FILES.getlist('images') or self.request.FILES.getlist('image')
+        if not images:
+            single = self.request.FILES.get('image') or self.request.FILES.get('images')
+            if single:
+                images = [single]
         if images:
-            from .models import ProductImage
             for i, img in enumerate(images):
-                ProductImage.objects.create(
+                _save_product_image(
                     product=product,
-                    image=img,
+                    image_file=img,
                     is_primary=(i == 0),
                     alt_text=product.name,
                     order=i
@@ -233,16 +266,19 @@ class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         product = serializer.save()
-        images = self.request.FILES.getlist('images')
+        images = self.request.FILES.getlist('images') or self.request.FILES.getlist('image')
+        if not images:
+            single = self.request.FILES.get('image') or self.request.FILES.get('images')
+            if single:
+                images = [single]
         if images:
-            from .models import ProductImage
-            ProductImage.objects.filter(product=product, is_primary=True).update(is_primary=False)
+            has_primary = ProductImage.objects.filter(product=product, is_primary=True).exists()
             base_order = ProductImage.objects.filter(product=product).count()
             for i, img in enumerate(images):
-                ProductImage.objects.create(
+                _save_product_image(
                     product=product,
-                    image=img,
-                    is_primary=(i == 0),
+                    image_file=img,
+                    is_primary=(not has_primary and i == 0),
                     alt_text=product.name,
                     order=base_order + i
                 )
@@ -273,29 +309,50 @@ class ProductImageUploadView(APIView):
         except Product.DoesNotExist:
             return Response({'error': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        images = request.FILES.getlist('images')
-        is_primary = request.data.get('is_primary', 'false') == 'true'
+        images = request.FILES.getlist('images') or request.FILES.getlist('image')
+        if not images:
+            single = request.FILES.get('image') or request.FILES.get('images')
+            if single:
+                images = [single]
+
+        if not images:
+            return Response({'error': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        has_primary = ProductImage.objects.filter(product=product, is_primary=True).exists()
+        is_primary_raw = request.data.get('is_primary')
+        if is_primary_raw is not None:
+            make_primary = str(is_primary_raw).lower() in ['true', '1']
+        else:
+            make_primary = not has_primary
+
         created_images = []
+        base_order = ProductImage.objects.filter(product=product).count()
 
         for i, image_file in enumerate(images):
-            if is_primary and i == 0:
+            if make_primary and i == 0:
                 ProductImage.objects.filter(product=product, is_primary=True).update(is_primary=False)
-            img = ProductImage.objects.create(
+            img = _save_product_image(
                 product=product,
-                image=image_file,
-                is_primary=(is_primary and i == 0),
+                image_file=image_file,
+                is_primary=(make_primary and i == 0),
                 alt_text=request.data.get('alt_text', product.name),
-                order=product.images.count() + i
+                order=base_order + i
             )
             created_images.append(img)
 
-        return Response(ProductImageSerializer(created_images, many=True).data, status=status.HTTP_201_CREATED)
+        return Response(ProductImageSerializer(created_images, many=True, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, product_id):
         image_id = request.data.get('image_id')
         try:
             image = ProductImage.objects.get(pk=image_id, product_id=product_id)
+            was_primary = image.is_primary
             image.delete()
+            if was_primary:
+                first_remaining = ProductImage.objects.filter(product_id=product_id).first()
+                if first_remaining:
+                    first_remaining.is_primary = True
+                    first_remaining.save()
             return Response({'message': 'Image deleted.'})
         except ProductImage.DoesNotExist:
             return Response({'error': 'Image not found.'}, status=status.HTTP_404_NOT_FOUND)

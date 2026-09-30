@@ -98,10 +98,11 @@ export default function PricingPage() {
                 
                 const finalPrice = getSellingPrice(currBase, currDisc);
 
+                const prodImg = p.primary_image?.image_url || p.primary_image?.image || p.image;
                 return (
                   <tr key={p.id} className="border-b-2 border-gray-100 hover:bg-orange-50">
                     <td className="p-4 border-r-2 border-gray-100 flex items-center gap-3 font-black">
-                      {p.primary_image?.image_url && <img src={p.primary_image.image_url} className="w-8 h-8 neo-border object-cover" />}
+                      {prodImg && <img src={prodImg} alt="" className="w-8 h-8 neo-border object-cover shrink-0" />}
                       <span className="line-clamp-1 w-48">{p.name}</span>
                     </td>
                     <td className="p-4 border-r-2 border-gray-100">

@@ -19,6 +19,7 @@ export default function AdminProductsPage() {
     base_price: '', quantity: '', is_active: true, is_featured: false
   });
   const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [catForm, setCatForm] = useState({ name: '', description: '' });
 
@@ -67,6 +68,7 @@ export default function AdminProductsPage() {
       }
       setShowModal(false);
       setImageFiles([]);
+      setExistingImages([]);
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.name?.[0] || 'Operation failed');
@@ -117,6 +119,7 @@ export default function AdminProductsPage() {
     setShowModal(true);
     setIsLoadingEdit(true);
     setImageFiles([]);
+    setExistingImages([]);
     setForm({ name: '', sku: '', category: '', brand: '', description: '', base_price: '', quantity: '', is_active: true, is_featured: false });
 
     try {
@@ -132,12 +135,25 @@ export default function AdminProductsPage() {
         is_active: Boolean(data.is_active),
         is_featured: Boolean(data.is_featured),
       });
+      setExistingImages(data.images || []);
     } catch {
       toast.error('Failed to load product details');
       setShowModal(false);
       setEditingId(null);
     } finally {
       setIsLoadingEdit(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (!editingId) return;
+    try {
+      await api.delete(`/products/admin/products/${editingId}/images/`, { data: { image_id: imageId } });
+      toast.success('Image deleted');
+      setExistingImages(prev => prev.filter(img => img.id !== imageId));
+      fetchData();
+    } catch {
+      toast.error('Failed to delete image');
     }
   };
 
@@ -186,13 +202,18 @@ export default function AdminProductsPage() {
   };
 
   const imgUpload = async (id, file) => {
+    if (!file) return;
     const fd = new FormData();
+    fd.append('images', file);
     fd.append('image', file);
+    fd.append('is_primary', 'true');
     try {
       await api.post(`/products/admin/products/${id}/images/`, fd, { headers: {'Content-Type': 'multipart/form-data'} });
       toast.success('Image uploaded');
       fetchData();
-    } catch { toast.error('Image upload failed'); }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Image upload failed');
+    }
   };
 
   const inputCls = "neo-input w-full px-3 py-2 text-sm";
@@ -333,9 +354,39 @@ export default function AdminProductsPage() {
                     </div>
                   )}
 
+                  {editingId && existingImages.length > 0 && (
+                    <div>
+                      <label className="text-xs font-black mb-2 block uppercase text-gray-500">
+                        Current Images ({existingImages.length})
+                      </label>
+                      <div className="flex flex-wrap gap-3 p-3 bg-gray-50 neo-border">
+                        {existingImages.map((img) => (
+                          <div key={img.id} className="relative group w-20 h-20 neo-border bg-white overflow-hidden">
+                            <img src={img.image_url || img.image} alt={img.alt_text || 'Product image'} className="w-full h-full object-cover" />
+                            {img.is_primary && (
+                              <span className="absolute top-1 left-1 bg-[#F97316] text-white text-[9px] font-black px-1.5 py-0.5 uppercase shadow-sm">
+                                Primary
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteImage(img.id)}
+                              className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-none opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 cursor-pointer"
+                              title="Delete Image"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex gap-6 mt-4">
                     <div className="flex-1 p-3 bg-gray-50 neo-border border-dashed">
-                      <label className="text-xs font-black mb-2 block uppercase text-gray-500">Product Images ({imageFiles.length} selected)</label>
+                      <label className="text-xs font-black mb-2 block uppercase text-gray-500">
+                        {editingId ? `Add More Images (${imageFiles.length} new selected)` : `Product Images (${imageFiles.length} selected)`}
+                      </label>
                       <input
                         type="file"
                         accept="image/*"

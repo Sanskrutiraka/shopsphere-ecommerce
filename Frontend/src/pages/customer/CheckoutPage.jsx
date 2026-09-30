@@ -292,18 +292,25 @@ export default function CheckoutPage() {
             <h2 className="text-xl font-black mb-4 pb-4 border-b-2 border-gray-100">Order Summary</h2>
             
             <div className="divide-y-2 divide-gray-50 mb-4 max-h-60 overflow-y-auto pr-2">
-              {cart.items?.map(item => (
-                <div key={item.id} className="py-2 flex gap-3 items-center">
-                  <div className="w-12 h-12 bg-gray-100 shrink-0 neo-border">
-                    {item.product?.primary_image?.image_url && <img src={item.product.primary_image.image_url} alt="" className="w-full h-full object-cover" />}
+              {cart.items?.map(item => {
+                const itemImg = item.product?.primary_image?.image_url || item.product?.primary_image?.image || item.product?.image;
+                return (
+                  <div key={item.id} className="py-2 flex gap-3 items-center">
+                    <div className="w-12 h-12 bg-gray-100 shrink-0 neo-border overflow-hidden flex items-center justify-center">
+                      {itemImg ? (
+                        <img src={itemImg} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Package size={16} className="text-gray-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold truncate">{item.product?.name}</div>
+                      <div className="text-[10px] text-gray-500">Qty: {item.quantity}</div>
+                    </div>
+                    <div className="text-xs font-black">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold truncate">{item.product?.name}</div>
-                    <div className="text-[10px] text-gray-500">Qty: {item.quantity}</div>
-                  </div>
-                  <div className="text-xs font-black">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             <div className="space-y-3 pt-4 border-t-2 border-gray-100 mb-6 font-medium text-sm">

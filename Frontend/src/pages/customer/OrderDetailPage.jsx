@@ -105,24 +105,35 @@ export default function OrderDetailPage() {
           <div className="neo-card overflow-hidden">
             <h2 className="text-xl font-black p-6 border-b-2 border-[#0A0A0A] bg-gray-50">Items Ordered</h2>
             <div className="divide-y-2 divide-gray-100">
-              {order.items.map(item => (
-                <div key={item.id} className="p-6 flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <Link to={`/products/${item.product}`} className="font-black text-lg hover:text-[#F97316] inline-block mb-1">
-                      {item.product_name}
-                    </Link>
-                    <div className="text-xs text-gray-500 mb-2 font-medium">SKU: {item.product_sku}</div>
-                    <div className="flex items-baseline gap-2">
-                       <span className="font-black">₹{parseFloat(item.unit_price).toLocaleString('en-IN')}</span>
-                       <span className="text-xs font-bold text-gray-500">x {item.quantity}</span>
+              {order.items.map(item => {
+                const itemImg = item.product_image?.image_url || item.product_image?.image;
+                const productLink = item.product_slug ? `/products/${item.product_slug}` : (item.product ? `/products/${item.product}` : '#');
+                return (
+                  <div key={item.id} className="p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 neo-border flex-shrink-0">
+                      {itemImg ? (
+                        <img src={itemImg} alt={item.product_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-300" /></div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link to={productLink} className="font-black text-base sm:text-lg hover:text-[#F97316] inline-block mb-1 line-clamp-1">
+                        {item.product_name}
+                      </Link>
+                      <div className="text-xs text-gray-500 mb-2 font-medium">SKU: {item.product_sku}</div>
+                      <div className="flex items-baseline gap-2">
+                         <span className="font-black">₹{parseFloat(item.unit_price).toLocaleString('en-IN')}</span>
+                         <span className="text-xs font-bold text-gray-500">x {item.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="text-right sm:self-center">
+                      <div className="text-sm text-gray-500 font-bold mb-1">Subtotal</div>
+                      <div className="font-black text-xl">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
                     </div>
                   </div>
-                  <div className="text-right sm:self-center">
-                    <div className="text-sm text-gray-500 font-bold mb-1">Subtotal</div>
-                    <div className="font-black text-xl">₹{parseFloat(item.subtotal).toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

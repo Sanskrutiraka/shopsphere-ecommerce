@@ -77,11 +77,14 @@ export default function WishlistPage() {
               </button>
 
               <Link to={`/products/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-100 border-b-2 border-[#0A0A0A]">
-                {product.primary_image?.image_url ? (
-                  <img src={product.primary_image.image_url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-300" /></div>
-                )}
+                {(() => {
+                  const wishImgUrl = product.primary_image?.image_url || product.primary_image?.image || (typeof product.primary_image === 'string' ? product.primary_image : null) || product.image;
+                  return wishImgUrl ? (
+                    <img src={wishImgUrl} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-300" /></div>
+                  );
+                })()}
                 {isOutOfStock && <span className="absolute top-2 left-2 neo-badge bg-red-500 text-white px-2 py-0.5">Out of Stock</span>}
               </Link>
 

@@ -79,10 +79,11 @@ export default function StockPage() {
                 const currMin = updates[p.id]?.min_level !== undefined ? updates[p.id].min_level : stock.min_level;
                 const hasChanges = updates[p.id] !== undefined;
 
+                const prodImg = p.primary_image?.image_url || p.primary_image?.image || p.image;
                 return (
                   <tr key={p.id} className="border-b-2 border-gray-100 hover:bg-gray-50">
                     <td className="p-4 font-black border-r-2 border-gray-100 flex items-center gap-3">
-                      {p.primary_image?.image_url && <img src={p.primary_image.image_url} className="w-8 h-8 neo-border object-cover" />}
+                      {prodImg && <img src={prodImg} alt="" className="w-8 h-8 neo-border object-cover shrink-0" />}
                       <div>
                         {p.name}
                         <div className="text-xs text-gray-500 font-medium font-mono mt-0.5">{p.sku}</div>
