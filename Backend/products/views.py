@@ -17,7 +17,8 @@ from .models import Category, Product, ProductImage, ProductStock, PriceHistory,
 from .serializers import (
     CategorySerializer, ProductListSerializer, ProductDetailSerializer,
     ProductWriteSerializer, ProductImageSerializer, ProductStockSerializer,
-    PriceHistorySerializer, WishlistSerializer, WishlistItemSerializer, ProductReviewSerializer
+    PriceHistorySerializer, WishlistSerializer, WishlistItemSerializer, ProductReviewSerializer,
+    _extract_media_filename
 )
 from accounts.permissions import IsAdminUser
 
@@ -301,7 +302,7 @@ class ProductDescriptionGenerateView(APIView):
 
 class ProductImageUploadView(APIView):
     permission_classes = [IsAdminUser]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, product_id):
         try:
@@ -343,19 +344,55 @@ class ProductImageUploadView(APIView):
         return Response(ProductImageSerializer(created_images, many=True, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, product_id):
-        image_id = request.data.get('image_id')
-        try:
-            image = ProductImage.objects.get(pk=image_id, product_id=product_id)
-            was_primary = image.is_primary
-            image.delete()
-            if was_primary:
-                first_remaining = ProductImage.objects.filter(product_id=product_id).first()
-                if first_remaining:
-                    first_remaining.is_primary = True
-                    first_remaining.save()
-            return Response({'message': 'Image deleted.'})
-        except ProductImage.DoesNotExist:
-            return Response({'error': 'Image not found.'}, status=status.HTTP_404_NOT_FOUND)
+        image_id = request.query_params.get('image_id')
+        if not image_id:
+            try:
+                image_id = request.data.get('image_id')
+            except Exception:
+                image_id = None
+        
+        # 1. If image_id is given and not '0'
+        if image_id and str(image_id) not in ['0', 'None', '']:
+            try:
+                image = ProductImage.objects.get(pk=image_id, product_id=product_id)
+                was_primary = image.is_primary
+                
+                # Clean up local disk file if exists
+                if image.image:
+                    try:
+                        clean_fn = _extract_media_filename(str(image.image))
+                        if clean_fn:
+                            disk_path = os.path.join(settings.MEDIA_ROOT, clean_fn.replace('/', os.sep))
+                            if os.path.isfile(disk_path):
+                                os.remove(disk_path)
+                    except Exception:
+                        pass
+                
+                image.delete()
+                
+                if was_primary:
+                    first_remaining = ProductImage.objects.filter(product_id=product_id).first()
+                    if first_remaining:
+                        first_remaining.is_primary = True
+                        first_remaining.save()
+                        
+                return Response({'message': 'Image deleted successfully.'}, status=status.HTTP_200_OK)
+            except ProductImage.DoesNotExist:
+                pass
+
+        # 2. If image_id is 0, empty, or not in DB: clean up any disk files associated with this product
+        prod_dir = os.path.join(settings.MEDIA_ROOT, 'products')
+        if os.path.isdir(prod_dir):
+            prefix = f"{product_id}_"
+            for fname in os.listdir(prod_dir):
+                if fname.startswith(prefix):
+                    try:
+                        os.remove(os.path.join(prod_dir, fname))
+                    except Exception:
+                        pass
+                        
+        ProductImage.objects.filter(product_id=product_id).delete()
+        return Response({'message': 'Image deleted successfully.'}, status=status.HTTP_200_OK)
 
 
 class StockUpdateView(APIView):
